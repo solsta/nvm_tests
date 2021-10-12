@@ -27,6 +27,7 @@ TOID(struct my_root) root;
 
 struct array{
     char *buffer;
+    char *buffer_copy;
 };
 
 static bool file_exists(char *path){
@@ -82,6 +83,7 @@ int main(int argc, char **argv) {
      //Initialise array on the heap:
     struct array *ap = malloc(sizeof (struct array));
     ap->buffer = malloc(sizeof (char)*buffer_size);
+    ap->buffer_copy = malloc(sizeof (char)*buffer_size);
     printf("DRAM results: \n");
     printf("Sequential time: ");
     execute(ap->buffer, iterate_write, iterate_read);
@@ -93,7 +95,7 @@ int main(int argc, char **argv) {
 
     if (file_exists(path) == false) {
         if ((pop = pmemobj_create(path, POBJ_LAYOUT_NAME(list),
-                    sizeof(char)*buffer_size*2, 0666)) == NULL) {
+                    sizeof(char)*buffer_size*3, 0666)) == NULL) {
             perror("failed to create pool\n");
             return -1;
         }
@@ -120,5 +122,31 @@ int main(int argc, char **argv) {
         printf("Random time: ");
         execute(rp->buffer, iterate_write_rand, iterate_read_rand);
     } TX_END
+
+
+    time_t start = clock();
+    memcpy(ap->buffer_copy, ap->buffer, sizeof(char)*buffer_size);
+    time_t finish = clock();
+    double memcpy_time = (double)(finish - start) / CLOCKS_PER_SEC;
+    printf("MEMCPY took: %f \n", memcpy_time);
+
+    start = clock();
+    pmemobj_memcpy_persist(pop, rp->buffer_copy, rp->buffer, sizeof(char)*buffer_size);
+    finish = clock();
+    double pmemcpy_time = (double)(finish - start) / CLOCKS_PER_SEC;
+    printf("PMEMCPY took: %f \n", pmemcpy_time);
+
+    start = clock();
+    pmemobj_persist(pop, rp->buffer_copy, sizeof(char)*buffer_size);
+    finish = clock();
+    double pmem_persist_time = (double)(finish - start) / CLOCKS_PER_SEC;
+    printf("PMEM persist took: %f \n", pmem_persist_time);
+
+    start = clock();
+    pmemobj_memcpy_persist(pop, rp->buffer_copy, rp->buffer, sizeof(char)*buffer_size);
+    finish = clock();
+    double pmemcpy_persist_time = (double)(finish - start) / CLOCKS_PER_SEC;
+    printf("PMEMCPY persist took: %f \n", pmemcpy_persist_time);
+
     return 0;
 }
