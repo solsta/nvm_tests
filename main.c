@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include <libpmemobj/base.h>
-#include "pmemobj_list.h"
+//#include <libpmemobj/base.h>
+//#include "pmemobj_list.h"
 
 #include <glob.h>
 #include <libpmemobj.h>
@@ -21,6 +21,7 @@ static PMEMobjpool *pop;
 
 struct my_root{
     char buffer[buffer_size];
+    char buffer_copy[buffer_size];
 };
 TOID(struct my_root) root;
 
